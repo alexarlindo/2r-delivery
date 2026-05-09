@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rápido Rápido • Entregador</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <img class="logo" src="https://i.ibb.co/KprC2Rg2/rapidorapido-1.jpg" alt="Rápido Rápido" />
+
+      <div>
+        <h1><span class="brand-red">Rápido </span>Rápido</h1>
+        <p>Painel do entregador</p>
+      </div>
+    </header>
+
+    <section class="stats" aria-label="Resumo das entregas">
+      <div class="stat red">
+        <h2 id="pendingCount">0</h2>
+        <p>A fazer</p>
+      </div>
+
+      <div class="stat">
+        <h2 id="doneCount">0</h2>
+        <p>Concluídas</p>
+      </div>
+    </section>
+
+    <main>
+      <section class="view active" id="homeView">
+        <div class="section">
+          <h3>Início</h3>
+          <div class="sort-info">Resumo do dia</div>
+        </div>
+
+        <div class="profile-card">
+          <div class="profile-grid">
+            <div class="profile-stat">
+              <strong id="homePending">0</strong>
+              <span>Entregas por fazer</span>
+            </div>
+
+            <div class="profile-stat">
+              <strong id="homeDone">0</strong>
+              <span>Entregas concluídas</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" id="deliveriesView">
+        <div class="section">
+          <h3>Entregas</h3>
+          <div class="sort-info">Arraste para reorganizar</div>
+        </div>
+
+        <div class="cards" id="cards">
+          <article class="card" draggable="true">
+            <div class="top">
+              <div class="client">
+                <h2>João Cossa</h2>
+              </div>
+
+              <div class="badge pending">Pendente</div>
+            </div>
+
+            <div class="info">
+              <div class="row">
+                <i class="ti ti-phone"></i>
+                +258 84 123 4567
+              </div>
+
+              <div class="row">
+                <i class="ti ti-map-pin"></i>
+                Av. Vladimir Lenine, Matola Rio
+              </div>
+            </div>
+
+            <div class="actions">
+              <button class="btn call" onclick="window.location.href='tel:+258841234567'">
+                Ligar
+              </button>
+
+              <button class="btn done-btn" onclick="openSignature(this)">
+                Entregue
+              </button>
+            </div>
+
+            <div class="signature">
+              <i class="ti ti-writing"></i>
+              <span>Assinatura recolhida</span>
+            </div>
+          </article>
+        </div>
+
+        <div class="empty" id="emptyDeliveries">
+          Não há entregas por fazer.
+        </div>
+      </section>
+
+      <section class="view" id="completedView">
+        <div class="section">
+          <h3>Concluídas</h3>
+          <div class="sort-info">Entregas finalizadas</div>
+        </div>
+
+        <div class="cards" id="completedCards"></div>
+
+        <div class="empty" id="emptyCompleted">
+          Nenhuma entrega concluída ainda.
+        </div>
+      </section>
+
+      <section class="view" id="profileView">
+        <div class="section">
+          <h3>Perfil</h3>
+          <div class="sort-info">Entregador</div>
+        </div>
+
+        <div class="profile-card">
+          <div class="profile-top">
+            <div class="avatar">
+              <i class="ti ti-user-circle"></i>
+            </div>
+
+            <div>
+              <h2>Feliciano Sapatinha</h2>
+              <p>+258 87 6111 111</p>
+            </div>
+          </div>
+
+          <div class="profile-grid">
+            <div class="profile-stat">
+              <strong id="profileDone">0</strong>
+              <span>Entregas feitas</span>
+            </div>
+
+            <div class="profile-stat">
+              <strong id="profilePending">0</strong>
+              <span>Por fazer</span>
+            </div>
+
+            <div class="profile-stat">
+              <strong id="profileTotal">0</strong>
+              <span>Total do dia</span>
+            </div>
+
+            <div class="profile-stat">
+              <strong>Ativo</strong>
+              <span>Estado</span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <nav class="nav" aria-label="Navegação principal">
+      <button class="nav-item active" type="button" data-view="home" onclick="showView('home', this)">
+        <i class="ti ti-home"></i>
+        <span>Início</span>
+      </button>
+
+      <button class="nav-item" type="button" data-view="deliveries" onclick="showView('deliveries', this)">
+        <i class="ti ti-truck-delivery"></i>
+        <span>Entregas</span>
+      </button>
+
+      <button class="add" type="button" onclick="openModal()" aria-label="Adicionar entrega">
+        <i class="ti ti-plus"></i>
+      </button>
+
+      <button class="nav-item" type="button" data-view="completed" onclick="showView('completed', this)">
+        <i class="ti ti-circle-check"></i>
+        <span>Concluídas</span>
+      </button>
+
+      <button class="nav-item" type="button" data-view="profile" onclick="showView('profile', this)">
+        <i class="ti ti-user"></i>
+        <span>Perfil</span>
+      </button>
+    </nav>
+  </div>
+
+  <div class="overlay" id="overlay">
+    <div class="modal">
+      <h2>Nova Entrega</h2>
+
+      <div class="input-group">
+        <label for="name">Nome do Cliente</label>
+        <input type="text" class="input" id="name" />
+      </div>
+
+      <div class="input-group">
+        <label for="phone">Contacto</label>
+        <input type="text" class="input" id="phone" />
+      </div>
+
+      <div class="input-group">
+        <label for="address">Endereço</label>
+        <textarea class="input" id="address"></textarea>
+      </div>
+
+      <button class="submit" type="button" onclick="addOrder()">
+        Adicionar Entrega
+      </button>
+    </div>
+  </div>
+
+  <div class="signature-modal" id="signatureModal">
+    <div class="signature-box">
+      <h2>Assinatura do Cliente</h2>
+
+      <canvas id="canvas"></canvas>
+
+      <div class="signature-actions">
+        <button class="btn secondary" type="button" onclick="clearCanvas()">
+          Limpar
+        </button>
+
+        <button class="btn primary" type="button" onclick="saveSignature()">
+          Confirmar Entrega
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
