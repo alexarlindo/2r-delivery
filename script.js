@@ -4,12 +4,39 @@ const signatureViewer = document.getElementById("signatureViewer");
 const signaturePreviewImage = document.getElementById("signaturePreviewImage");
 const signaturePreviewContainer = signatureViewer.querySelector(".signature-preview");
 const orientationButton = document.getElementById("orientationButton");
+const verificationModal = document.getElementById("verificationModal");
+const deliveryCodeInput = document.getElementById("deliveryCode");
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
 let currentButton = null;
 let hasSignature = false;
 let drawing = false;
+let newOrderPhotoDataUrl = null;
+
+function generateCode() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let code = '';
+  for(let i=0; i<5; i++){
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+    if (i < 4) code += '-';
+  }
+  return code;
+}
+
+function getUniqueCode() {
+  let isUnique = false;
+  let code = '';
+  const activeCodes = Array.from(document.querySelectorAll('#cards .card:not(.done)')).map(card => card.dataset.code);
+  
+  while(!isUnique) {
+    code = generateCode();
+    if (!activeCodes.includes(code)) {
+      isUnique = true;
+    }
+  }
+  return code;
+}
 
 function openModal(){
   overlay.style.display = "flex";
@@ -33,6 +60,17 @@ signatureViewer.addEventListener("click",(event)=>{
   }
 });
 
+function previewNewOrderPhoto(event){
+  const file = event.target.files[0];
+  if(file){
+    const imageUrl = URL.createObjectURL(file);
+    newOrderPhotoDataUrl = imageUrl;
+    const preview = document.getElementById('newOrderPhotoPreview');
+    preview.src = imageUrl;
+    preview.style.display = 'block';
+  }
+}
+
 function addOrder(){
   const name = document.getElementById("name").value.trim();
   const phone = document.getElementById("phone").value.trim();
@@ -44,6 +82,7 @@ function addOrder(){
   }
 
   const id = Math.floor(Math.random()*9000)+1000;
+  const orderCode = getUniqueCode();
   const order = {
     name:escapeHTML(name),
     phone:escapeHTML(phone),
@@ -53,11 +92,16 @@ function addOrder(){
 
   card.className = "card";
   card.draggable = true;
+  card.dataset.code = orderCode;
+  if(newOrderPhotoDataUrl) {
+    card.dataset.photoUrl = newOrderPhotoDataUrl;
+  }
+  
   card.innerHTML = `
     <div class="top">
       <div class="client">
         <h2>${order.name}</h2>
-        <span>#PED-${id}</span>
+        <span style="font-size: 10px; color: #666;">(Cód: ${orderCode})</span>
       </div>
 
       <div class="badge pending">Pendente</div>
@@ -75,12 +119,19 @@ function addOrder(){
       </div>
     </div>
 
+    ${newOrderPhotoDataUrl ? `
+    <div class="package-photo-preview" style="margin-bottom: 12px; position: relative;">
+      <img src="${newOrderPhotoDataUrl}" class="captured-photo-img" style="width: 100%; height: 160px; object-fit: cover; border-radius: 12px; border: 1px solid #2a2a2a;" />
+      <div style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: #fff; padding: 4px 8px; border-radius: 8px; font-size: 11px; backdrop-filter: blur(4px);">
+        <i class="ti ti-check"></i> Foto Registada
+      </div>
+    </div>` : ''}
+
     <div class="actions">
       <button class="btn call" onclick="window.location.href='tel:${order.phone}'">
-        Ligar
+        <i class="ti ti-phone"></i> Ligar
       </button>
-
-      <button class="btn done-btn" onclick="openSignature(this)">
+      <button class="btn done-btn" onclick="openVerification(this)">
         Entregue
       </button>
     </div>
@@ -109,6 +160,10 @@ function resetOrderForm(){
   document.getElementById("name").value = "";
   document.getElementById("phone").value = "";
   document.getElementById("address").value = "";
+  document.getElementById("newOrderPhoto").value = "";
+  document.getElementById("newOrderPhotoPreview").src = "";
+  document.getElementById("newOrderPhotoPreview").style.display = "none";
+  newOrderPhotoDataUrl = null;
   overlay.style.display = "none";
 }
 
@@ -156,6 +211,45 @@ function openDeliveriesView(){
   showView("deliveries", deliveriesButton);
 }
 
+function openVerification(btn){
+  currentButton = btn;
+  verificationModal.style.display = "flex";
+  deliveryCodeInput.value = "";
+}
+
+function closeVerification(){
+  verificationModal.style.display = "none";
+  currentButton = null;
+}
+
+if(deliveryCodeInput){
+  deliveryCodeInput.addEventListener("input", function(e) {
+    let val = e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    let formatted = '';
+    for (let i = 0; i < val.length; i++) {
+      formatted += val[i];
+      if (i < 4 && i < val.length - 1) formatted += '-';
+    }
+    e.target.value = formatted;
+  });
+}
+
+function verifyDelivery(){
+  if(!currentButton) return;
+  const card = currentButton.closest(".card");
+  const expectedCode = card.dataset.code;
+  const enteredCode = deliveryCodeInput.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+  const rawExpected = expectedCode.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+
+  if(enteredCode !== rawExpected){
+    alert("Código de entrega inválido! Verifique e tente novamente.");
+    return;
+  }
+
+  verificationModal.style.display = "none";
+  openSignature(currentButton);
+}
+
 function openSignature(btn){
   currentButton = btn;
   signatureModal.style.display = "flex";
@@ -192,6 +286,7 @@ function saveSignature(){
   currentButton.disabled = true;
 
   renderSignature(card, createReceiptSignatureImage(), "landscape");
+  
   signatureModal.style.display = "none";
   signatureModal.classList.remove("landscape");
   clearCanvas();
@@ -250,71 +345,13 @@ function closeSignaturePreview(){
 function createReceiptSignatureImage(){
   const receiptCanvas = document.createElement("canvas");
   const receiptCtx = receiptCanvas.getContext("2d");
-  const width = 960;
-  const height = 320;
-  const padding = 24;
-
-  const source = document.createElement("canvas");
-  source.width = canvas.width;
-  source.height = canvas.height;
-  source.getContext("2d").drawImage(canvas,0,0);
-
-  const sourceCtx = source.getContext("2d");
-  const { data, width: sourceWidth, height: sourceHeight } = sourceCtx.getImageData(0,0,source.width,source.height);
-  let minX = sourceWidth;
-  let minY = sourceHeight;
-  let maxX = -1;
-  let maxY = -1;
-
-  for(let y = 0; y < sourceHeight; y++){
-    for(let x = 0; x < sourceWidth; x++){
-      const index = (y * sourceWidth + x) * 4;
-      const alpha = data[index + 3];
-      const red = data[index];
-      const green = data[index + 1];
-      const blue = data[index + 2];
-
-      if(alpha > 0 && (red < 245 || green < 245 || blue < 245)){
-        if(x < minX) minX = x;
-        if(y < minY) minY = y;
-        if(x > maxX) maxX = x;
-        if(y > maxY) maxY = y;
-      }
-    }
-  }
-
-  const hasInk = maxX >= 0 && maxY >= 0;
-  const cropWidth = hasInk ? Math.max(1, maxX - minX + 1) : sourceWidth;
-  const cropHeight = hasInk ? Math.max(1, maxY - minY + 1) : sourceHeight;
-  const sourceAspect = cropWidth / cropHeight;
-  const maxWidth = width - padding * 2;
-  const maxHeight = height - padding * 2;
-  let drawWidth = maxWidth;
-  let drawHeight = drawWidth / sourceAspect;
-
-  if(drawHeight > maxHeight){
-    drawHeight = maxHeight;
-    drawWidth = drawHeight * sourceAspect;
-  }
-
-  const drawX = (width - drawWidth) / 2;
-  const drawY = (height - drawHeight) / 2;
-
-  receiptCanvas.width = width;
-  receiptCanvas.height = height;
+  
+  receiptCanvas.width = canvas.width;
+  receiptCanvas.height = canvas.height;
+  
   receiptCtx.fillStyle = "#fff";
-  receiptCtx.fillRect(0,0,width,height);
-  receiptCtx.drawImage(
-    source,
-    hasInk ? minX : 0,
-    hasInk ? minY : 0,
-    cropWidth,
-    cropHeight,
-    drawX,
-    drawY,
-    drawWidth,
-    drawHeight
-  );
+  receiptCtx.fillRect(0, 0, canvas.width, canvas.height);
+  receiptCtx.drawImage(canvas, 0, 0);
 
   return receiptCanvas.toDataURL("image/png");
 }

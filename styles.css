@@ -209,9 +209,25 @@ body{
 }
 
 .actions{
-  display:grid;
-  grid-template-columns:1fr 1fr;
+  display:flex;
   gap:8px;
+}
+
+.actions .btn {
+  flex: 1;
+}
+
+.icon-btn{
+  flex: 0 0 46px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.icon-btn i{
+  font-size:22px;
+  margin: 0;
 }
 
 .btn{
@@ -330,15 +346,20 @@ body{
   filter:contrast(1.15);
 }
 
-.signature-preview.large img{
-  height:180px;
+.signature-preview.large{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  /* mesma altura “efetiva” do canvas no modo landscape */
+  height:min(360px, 52vw);
+  min-height:200px;
 }
 
-.signature-preview.large.landscape img{
+.signature-preview.large img{
   width:100%;
-  height:auto;
-  min-height:220px;
-  max-height:62vh;
+  height:100% !important; /* sobrescreve o height fixo de 78px do img */
+  object-fit:contain;
+  display:block;
 }
 
 .signature-line{
@@ -583,10 +604,16 @@ textarea.input{
   background:#111;
   border-radius:24px;
   padding:18px;
+  display:flex;
+  flex-direction:column;
+  max-height:calc(100vh - 40px);
+  overflow:hidden;
 }
 
 .signature-viewer.landscape .signature-viewer-box{
   max-width:min(920px, 96vw);
+  width:min(920px, calc(100vw - 28px));
+  max-width:none;
 }
 
 .signature-modal.landscape{
@@ -819,4 +846,80 @@ canvas{
   .add{
     margin-top:0;
   }
+}
+
+.delivery-code-input {
+  text-transform: uppercase;
+  letter-spacing: 4px;
+  text-align: center;
+  font-size: 20px;
+  font-weight: 600;
+  padding: 18px;
+}
+
+.delivery-code-input::placeholder {
+  letter-spacing: 2px;
+  font-weight: 400;
+  font-size: 16px;
+  color: #444;
+}
+
+.photo-capture-box {
+  background: var(--card-2);
+  border: 1px dashed #333;
+  border-radius: 14px;
+  padding: 16px;
+  text-align: center;
+}
+
+.photo-capture-box input[type="file"] {
+  display: none;
+}
+
+#newOrderPhotoPreview {
+  width: 100%;
+  margin-top: 15px;
+  border-radius: 12px;
+  object-fit: cover;
+  max-height: 180px;
+  display: none;
+  border: 1px solid #333;
+}
+
+.signature-and-photo {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.signature-and-photo > .signature {
+  flex: 1;
+  margin-top: 0;
+}
+
+.photo-thumbnail {
+  width: 80px;
+  background: #131313;
+  border: 1px solid #262626;
+  border-radius: 14px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  cursor: pointer;
+}
+
+.photo-thumbnail img {
+  width: 100%;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.photo-thumbnail span {
+  font-size: 9px;
+  color: #666;
+  text-align: center;
 }
