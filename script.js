@@ -1,5 +1,9 @@
 const overlay = document.getElementById("overlay");
 const signatureModal = document.getElementById("signatureModal");
+const signatureViewer = document.getElementById("signatureViewer");
+const signaturePreviewImage = document.getElementById("signaturePreviewImage");
+const signaturePreviewContainer = signatureViewer.querySelector(".signature-preview");
+const orientationButton = document.getElementById("orientationButton");
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
@@ -14,6 +18,18 @@ function openModal(){
 overlay.addEventListener("click",(event)=>{
   if(event.target === overlay){
     overlay.style.display = "none";
+  }
+});
+
+signatureModal.addEventListener("click",(event)=>{
+  if(event.target === signatureModal){
+    closeSignature();
+  }
+});
+
+signatureViewer.addEventListener("click",(event)=>{
+  if(event.target === signatureViewer){
+    closeSignaturePreview();
   }
 });
 
@@ -143,11 +159,19 @@ function openDeliveriesView(){
 function openSignature(btn){
   currentButton = btn;
   signatureModal.style.display = "flex";
+  signatureModal.classList.add("landscape");
 
   requestAnimationFrame(()=>{
     resizeCanvas();
     clearCanvas();
   });
+}
+
+function closeSignature(){
+  signatureModal.style.display = "none";
+  signatureModal.classList.remove("landscape");
+  currentButton = null;
+  clearCanvas();
 }
 
 function saveSignature(){
@@ -167,15 +191,16 @@ function saveSignature(){
   currentButton.innerHTML = "Finalizado";
   currentButton.disabled = true;
 
-  renderSignature(card, canvas.toDataURL("image/png"));
+  renderSignature(card, createReceiptSignatureImage(), "landscape");
   signatureModal.style.display = "none";
+  signatureModal.classList.remove("landscape");
   clearCanvas();
   updateStats();
   refreshLists();
   showView("completed", document.querySelector('[data-view="completed"]'));
 }
 
-function renderSignature(card, imageUrl){
+function renderSignature(card, imageUrl, orientation = "landscape"){
   const signature = card.querySelector(".signature");
   const deliveredAt = new Date().toLocaleString("pt-MZ", {
     day:"2-digit",
@@ -185,32 +210,133 @@ function renderSignature(card, imageUrl){
     minute:"2-digit"
   });
 
+  signature.dataset.image = imageUrl;
+  signature.dataset.orientation = orientation;
   signature.innerHTML = `
-    <div class="signature-head">
+    <button class="signature-button" type="button" onclick="openSignaturePreview(this)">
       <div class="signature-title">
         <i class="ti ti-writing-sign"></i>
-        <span>Comprovativo assinado</span>
+        <span>Ver assinatura</span>
       </div>
       <span class="signature-time">${deliveredAt}</span>
-    </div>
+    </button>
 
-    <div class="signature-preview">
-      <img src="${imageUrl}" alt="Assinatura do cliente">
-      <div class="signature-line"></div>
-      <div class="signature-caption">Assinatura do cliente</div>
-    </div>
+    <button class="signature-thumb landscape" type="button" onclick="openSignaturePreview(this)">
+      <div class="signature-preview thumb landscape">
+        <img src="${imageUrl}" alt="Miniatura da assinatura do cliente">
+      </div>
+    </button>
   `;
 
   signature.style.display = "flex";
 }
 
-function resizeCanvas(){
+function openSignaturePreview(button){
+  const signature = button.closest(".signature");
+
+  signaturePreviewImage.src = signature.dataset.image;
+  signatureViewer.classList.add("landscape");
+  signaturePreviewContainer.classList.add("landscape");
+  signatureViewer.style.display = "flex";
+}
+
+function closeSignaturePreview(){
+  signatureViewer.style.display = "none";
+  signaturePreviewImage.src = "";
+  signatureViewer.classList.remove("landscape");
+  signaturePreviewContainer.classList.remove("landscape");
+}
+
+function createReceiptSignatureImage(){
+  const receiptCanvas = document.createElement("canvas");
+  const receiptCtx = receiptCanvas.getContext("2d");
+  const width = 960;
+  const height = 320;
+  const padding = 24;
+
+  const source = document.createElement("canvas");
+  source.width = canvas.width;
+  source.height = canvas.height;
+  source.getContext("2d").drawImage(canvas,0,0);
+
+  const sourceCtx = source.getContext("2d");
+  const { data, width: sourceWidth, height: sourceHeight } = sourceCtx.getImageData(0,0,source.width,source.height);
+  let minX = sourceWidth;
+  let minY = sourceHeight;
+  let maxX = -1;
+  let maxY = -1;
+
+  for(let y = 0; y < sourceHeight; y++){
+    for(let x = 0; x < sourceWidth; x++){
+      const index = (y * sourceWidth + x) * 4;
+      const alpha = data[index + 3];
+      const red = data[index];
+      const green = data[index + 1];
+      const blue = data[index + 2];
+
+      if(alpha > 0 && (red < 245 || green < 245 || blue < 245)){
+        if(x < minX) minX = x;
+        if(y < minY) minY = y;
+        if(x > maxX) maxX = x;
+        if(y > maxY) maxY = y;
+      }
+    }
+  }
+
+  const hasInk = maxX >= 0 && maxY >= 0;
+  const cropWidth = hasInk ? Math.max(1, maxX - minX + 1) : sourceWidth;
+  const cropHeight = hasInk ? Math.max(1, maxY - minY + 1) : sourceHeight;
+  const sourceAspect = cropWidth / cropHeight;
+  const maxWidth = width - padding * 2;
+  const maxHeight = height - padding * 2;
+  let drawWidth = maxWidth;
+  let drawHeight = drawWidth / sourceAspect;
+
+  if(drawHeight > maxHeight){
+    drawHeight = maxHeight;
+    drawWidth = drawHeight * sourceAspect;
+  }
+
+  const drawX = (width - drawWidth) / 2;
+  const drawY = (height - drawHeight) / 2;
+
+  receiptCanvas.width = width;
+  receiptCanvas.height = height;
+  receiptCtx.fillStyle = "#fff";
+  receiptCtx.fillRect(0,0,width,height);
+  receiptCtx.drawImage(
+    source,
+    hasInk ? minX : 0,
+    hasInk ? minY : 0,
+    cropWidth,
+    cropHeight,
+    drawX,
+    drawY,
+    drawWidth,
+    drawHeight
+  );
+
+  return receiptCanvas.toDataURL("image/png");
+}
+
+function resizeCanvas(snapshot = null){
   const rect = canvas.getBoundingClientRect();
   const scale = window.devicePixelRatio || 1;
 
   canvas.width = rect.width * scale;
   canvas.height = rect.height * scale;
   ctx.setTransform(scale,0,0,scale,0,0);
+
+  if(snapshot){
+    const image = new Image();
+    image.onload = ()=>{
+      ctx.drawImage(image,0,0,rect.width,rect.height);
+      hasSignature = true;
+    };
+    image.src = snapshot;
+  }else{
+    clearCanvas();
+  }
 }
 
 function clearCanvas(){
@@ -258,8 +384,8 @@ canvas.addEventListener("touchmove",draw);
 
 window.addEventListener("resize",()=>{
   if(signatureModal.style.display === "flex"){
-    resizeCanvas();
-    clearCanvas();
+    const keepSignature = hasSignature ? canvas.toDataURL("image/png") : null;
+    resizeCanvas(keepSignature);
   }
 });
 

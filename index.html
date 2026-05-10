@@ -212,7 +212,15 @@
 
   <div class="signature-modal" id="signatureModal">
     <div class="signature-box">
-      <h2>Assinatura do Cliente</h2>
+      <div class="signature-header">
+        <h2>Assinatura do Cliente</h2>
+
+        <div class="signature-tools">
+          <button class="close-signature" type="button" onclick="closeSignature()" aria-label="Fechar assinatura">
+            <i class="ti ti-x"></i>
+          </button>
+        </div>
+      </div>
 
       <canvas id="canvas"></canvas>
 
@@ -224,6 +232,23 @@
         <button class="btn primary" type="button" onclick="saveSignature()">
           Confirmar Entrega
         </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="signature-viewer" id="signatureViewer">
+    <div class="signature-viewer-box">
+      <div class="signature-header">
+        <h2>Assinatura recolhida</h2>
+        <button class="close-signature" type="button" onclick="closeSignaturePreview()" aria-label="Fechar assinatura">
+          <i class="ti ti-x"></i>
+        </button>
+      </div>
+
+      <div class="signature-preview large">
+        <img id="signaturePreviewImage" src="" alt="Assinatura do cliente">
+        <div class="signature-line"></div>
+        <div class="signature-caption">Assinatura do cliente</div>
       </div>
     </div>
   </div>
